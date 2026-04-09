@@ -16,6 +16,8 @@ import { ForgotPassword } from "./pages/auth/ForgotPassword";
 
 // Dashboard Pages
 import { FarmerDashboard } from "./pages/dashboards/FarmerDashboard";
+import { FarmerSettings } from "./pages/dashboards/FarmerSettings";
+import { FarmerConsult } from "./pages/dashboards/FarmerConsult";
 import { AdminDashboard } from "./pages/dashboards/AdminDashboard";
 import { ExpertDashboard } from "./pages/dashboards/ExpertDashboard";
 
@@ -42,6 +44,8 @@ export const router = createBrowserRouter([
     Component: DashboardLayout,
     children: [
       { path: "farmer", Component: FarmerDashboard },
+      { path: "farmer/settings", Component: FarmerSettings },
+      { path: "farmer/consult", Component: FarmerConsult },
       { path: "admin", Component: AdminDashboard },
       { path: "expert", Component: ExpertDashboard },
     ],

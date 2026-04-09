@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router";
 import { useState } from "react";
-import { Menu, X, Sprout, User } from "lucide-react";
+import { Menu, X, Sprout, User, LogOut, LayoutDashboard } from "lucide-react";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -8,14 +8,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { useAuth } from "../context/AuthContext";
 
 export function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, logout, isAuthenticated } = useAuth();
   
-  // Mock user state - in a real app, this would come from context/auth
-  const isLoggedIn = false;
-  const userRole = null; // 'farmer' | 'admin' | 'expert' | null
+  const isLoggedIn = isAuthenticated;
+  const userRole = user?.role;
+
+  const handleLogout = () => {
+    logout();
+    navigate("/");
+    setMobileMenuOpen(false);
+  };
 
   const navLinks = [
     { label: "Home", path: "/" },
@@ -45,7 +52,7 @@ export function Navbar() {
               <Link
                 key={link.path}
                 to={link.path}
-                className="text-gray-700 hover:text-primary transition-colors"
+                className="text-gray-700 hover:text-primary transition-colors text-sm font-medium"
               >
                 {link.label}
               </Link>
@@ -57,21 +64,35 @@ export function Navbar() {
             {isLoggedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon">
-                    <User className="h-5 w-5" />
+                  <Button variant="outline" className="gap-2 px-3">
+                    <User className="h-4 w-4" />
+                    <span className="text-sm font-medium">{user?.name}</span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => navigate(`/dashboard/${userRole}`)}>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem 
+                    className="cursor-pointer gap-2"
+                    onClick={() => navigate(`/dashboard/${userRole}`)}
+                  >
+                    <LayoutDashboard className="h-4 w-4" />
                     Dashboard
                   </DropdownMenuItem>
-                  <DropdownMenuItem>Profile</DropdownMenuItem>
-                  <DropdownMenuItem>Logout</DropdownMenuItem>
+                  <DropdownMenuItem className="cursor-pointer gap-2">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    className="cursor-pointer gap-2 text-red-600 focus:text-red-600"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <>
-                <Button variant="outline" onClick={() => navigate("/login")}>
+                <Button variant="ghost" onClick={() => navigate("/login")}>
                   Login
                 </Button>
                 <Button onClick={() => navigate("/signup")}>
@@ -83,7 +104,7 @@ export function Navbar() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden p-2"
+            className="md:hidden p-2 text-gray-600"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? (
@@ -103,7 +124,7 @@ export function Navbar() {
               <Link
                 key={link.path}
                 to={link.path}
-                className="block py-2 text-gray-700 hover:text-primary transition-colors"
+                className="block py-2 text-gray-700 hover:text-primary transition-colors font-medium border-b border-gray-50 last:border-0"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 {link.label}
@@ -112,22 +133,36 @@ export function Navbar() {
             <div className="pt-3 border-t border-gray-200 space-y-2">
               {isLoggedIn ? (
                 <>
+                  <div className="px-2 py-2 mb-2 bg-gray-50 rounded-lg flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold">{user?.name}</p>
+                    </div>
+                  </div>
                   <Button
                     variant="outline"
-                    className="w-full"
+                    className="w-full justify-start gap-2"
                     onClick={() => {
                       navigate(`/dashboard/${userRole}`);
                       setMobileMenuOpen(false);
                     }}
                   >
+                    <LayoutDashboard className="h-4 w-4" />
                     Dashboard
                   </Button>
-                  <Button variant="outline" className="w-full">
+                  <Button 
+                    variant="destructive" 
+                    className="w-full justify-start gap-2"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4" />
                     Logout
                   </Button>
                 </>
               ) : (
-                <>
+                <div className="flex flex-col gap-2 pt-2">
                   <Button
                     variant="outline"
                     className="w-full"
@@ -147,7 +182,7 @@ export function Navbar() {
                   >
                     Sign Up
                   </Button>
-                </>
+                </div>
               )}
             </div>
           </div>

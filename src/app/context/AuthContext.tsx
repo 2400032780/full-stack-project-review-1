@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
 interface User {
   id: string;
@@ -9,7 +9,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string, role: string) => void;
+  login: (userData: User) => void;
   logout: () => void;
   isAuthenticated: boolean;
 }
@@ -18,21 +18,47 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const login = (email: string, password: string, role: string) => {
-    // Mock login - in a real app, this would call an API
-    const mockUser: User = {
-      id: "1",
-      name: "John Doe",
-      email: email,
-      role: role as User["role"],
-    };
-    setUser(mockUser);
+  // Load user from localStorage on initial load
+  useEffect(() => {
+    const savedUserId = localStorage.getItem("userId");
+    const savedUserName = localStorage.getItem("userName");
+    const savedUserEmail = localStorage.getItem("userEmail");
+    const savedUserRole = localStorage.getItem("userRole");
+
+    if (savedUserId && savedUserRole) {
+      setUser({
+        id: savedUserId,
+        name: savedUserName || "",
+        email: savedUserEmail || "",
+        role: savedUserRole.toLowerCase() as User["role"],
+      });
+    }
+    setLoading(false);
+  }, []);
+
+  const login = (userData: User) => {
+    setUser(userData);
+    localStorage.setItem("userId", userData.id);
+    localStorage.setItem("userName", userData.name);
+    localStorage.setItem("userEmail", userData.email);
+    localStorage.setItem("userRole", userData.role);
   };
 
   const logout = () => {
     setUser(null);
+    localStorage.removeItem("userId");
+    localStorage.removeItem("userName");
+    localStorage.removeItem("userEmail");
+    localStorage.removeItem("userRole");
+    // Also clear other potential session data
+    localStorage.removeItem("token");
   };
+
+  if (loading) {
+    return null; // Or a loading spinner
+  }
 
   return (
     <AuthContext.Provider
@@ -55,3 +81,4 @@ export function useAuth() {
   }
   return context;
 }
+

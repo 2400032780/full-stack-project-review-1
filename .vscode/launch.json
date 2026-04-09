@@ -1,0 +1,20 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "java",
+            "name": "Spring Boot-BackendApplication<backend>",
+            "request": "launch",
+            "mainClass": "com.farming.backend.BackendApplication",
+            "projectName": "backend"
+        },
+        {
+            "name": "Launch Frontend (Vite/React)",
+            "request": "launch",
+            "type": "msedge",
+            "url": "http://localhost:5173",
+            "webRoot": "${workspaceFolder}/src",
+            "preLaunchTask": "npm run dev"
+        }
+    ]
+}

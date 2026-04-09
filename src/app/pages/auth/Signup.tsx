@@ -13,6 +13,7 @@ import {
 } from "../../components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Sprout } from "lucide-react";
+import { API_URL } from "../../config/api";
 
 export function Signup() {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export function Signup() {
     acceptTerms: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
       alert("Passwords do not match!");
@@ -36,9 +37,32 @@ export function Signup() {
       alert("Please accept the terms and conditions");
       return;
     }
-    // Mock signup - in a real app, this would call an API
-    console.log("Signup:", formData);
-    navigate("/login");
+    
+    try {
+      const response = await fetch(`${API_URL}/api/users/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: formData.fullName,
+          email: formData.email,
+          password: formData.password,
+          role: formData.role.toUpperCase(),
+        }),
+      });
+
+      if (response.ok) {
+        alert("Account created successfully!");
+        navigate("/login");
+      } else {
+        const errorData = await response.json();
+        alert("Error: " + (errorData.error || "Registration failed"));
+      }
+    } catch (error) {
+      console.error("Signup error:", error);
+      alert("Network error! Is the backend running?");
+    }
   };
 
   return (
@@ -128,26 +152,6 @@ export function Signup() {
                 }
                 required
               />
-            </div>
-
-            {/* Role Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="role">Register As</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, role: value })
-                }
-              >
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="farmer">Farmer</SelectItem>
-                  <SelectItem value="expert">Agricultural Expert</SelectItem>
-                  <SelectItem value="public">Public User</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Terms & Conditions */}

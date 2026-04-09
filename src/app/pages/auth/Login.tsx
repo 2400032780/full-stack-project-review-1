@@ -13,9 +13,12 @@ import {
 } from "../../components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Sprout } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
+import { API_URL } from "../../config/api";
 
 export function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -23,12 +26,42 @@ export function Login() {
     rememberMe: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Mock login - in a real app, this would call an API
-    console.log("Login:", formData);
-    // Redirect to dashboard based on role
-    navigate(`/dashboard/${formData.role}`);
+
+    try {
+      const response = await fetch(`${API_URL}/api/users/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      if (response.ok) {
+        const user = await response.json();
+        
+        // Use the context login to handle state and localStorage
+        login({
+          id: user.id || "1",
+          name: user.username || user.name || "User",
+          email: user.email || formData.email,
+          role: (user.role || formData.role).toLowerCase() as any,
+        });
+        
+        const userRole = (user.role || formData.role).toLowerCase();
+        navigate(`/dashboard/${userRole}`);
+      } else {
+        const errorData = await response.json();
+        alert("Error: " + (errorData.error || "Invalid credentials"));
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Network error! Is the backend running?");
+    }
   };
 
   return (
@@ -75,25 +108,19 @@ export function Login() {
               />
             </div>
 
-            {/* Role Selection */}
+            {/* Password */}
             <div className="space-y-2">
-              <Label htmlFor="role">Login As</Label>
-              <Select
-                value={formData.role}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, role: value })
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
                 }
-              >
-                <SelectTrigger id="role">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="farmer">Farmer</SelectItem>
-                  <SelectItem value="expert">Agricultural Expert</SelectItem>
-                  <SelectItem value="admin">Administrator</SelectItem>
-                  <SelectItem value="public">Public User</SelectItem>
-                </SelectContent>
-              </Select>
+                required
+              />
             </div>
 
             {/* Remember Me & Forgot Password */}

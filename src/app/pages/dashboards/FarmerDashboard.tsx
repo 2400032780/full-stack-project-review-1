@@ -1,6 +1,18 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../components/ui/card";
 import { Button } from "../../components/ui/button";
 import { Badge } from "../../components/ui/badge";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../../components/ui/dialog";
 import {
   BarChart,
   Bar,
@@ -21,45 +33,129 @@ import {
   MessageSquare,
   Calendar,
   Award,
+  Plus,
 } from "lucide-react";
+import { toast } from "sonner";
+import { API_URL } from "../../config/api";
 
 export function FarmerDashboard() {
+  const [crops, setCrops] = useState<any[]>([]);
+  const [consultations, setConsultations] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const userId = localStorage.getItem("userId");
+
+  const [newCrop, setNewCrop] = useState({
+    name: "",
+    area: "",
+    expectedYield: "",
+  });
+
+  useEffect(() => {
+    if (!userId) {
+      toast.error("User not logged in! Redirecting...");
+      // navigate("/login"); // Need to import navigate if needed
+    } else {
+      fetchData();
+    }
+  }, [userId]);
+
+  const fetchData = async () => {
+    setIsLoading(true);
+    console.log("Fetching data for userId:", userId);
+    try {
+      const [cropsRes, consultRes] = await Promise.all([
+        fetch(`${API_URL}/api/crops/${userId}`),
+        fetch(`${API_URL}/api/consultations/${userId}`),
+      ]);
+
+      if (cropsRes.ok) {
+        const cropsData = await cropsRes.json();
+        console.log("Crops data fetched:", cropsData);
+        setCrops(cropsData);
+      } else {
+        console.error("Failed to fetch crops", cropsRes.status);
+      }
+
+      if (consultRes.ok) {
+        const consultData = await consultRes.json();
+        console.log("Consultations data fetched:", consultData);
+        setConsultations(consultData);
+      } else {
+        console.error("Failed to fetch consultations", consultRes.status);
+      }
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      toast.error("Connection lost! Check if backend is running.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddCrop = async () => {
+    if (!newCrop.name || !newCrop.area || !newCrop.expectedYield) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    console.log("Adding crop with body-linked userId:", userId, newCrop);
+    try {
+      const response = await fetch(`${API_URL}/api/crops`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          farmerId: userId,
+          name: newCrop.name,
+          area: Number(newCrop.area),
+          expectedYield: Number(newCrop.expectedYield),
+        }),
+      });
+
+      if (response.ok) {
+        toast.success("Crop added successfully!");
+        setNewCrop({ name: "", area: "", expectedYield: "" });
+        fetchData();
+      } else {
+        const error = await response.text();
+        console.error("Failed to add crop:", error);
+        toast.error("Error: " + error);
+      }
+    } catch (error) {
+      console.error("Add crop error:", error);
+      toast.error("Network error! Is the backend running?");
+    }
+  };
+
   const stats = [
     {
       icon: Wheat,
       title: "Active Crops",
-      value: "4",
-      change: "+2 this season",
+      value: crops.length.toString(),
+      change: "Current season",
       color: "bg-primary/10 text-primary",
     },
     {
       icon: TrendingUp,
-      title: "Expected Yield",
-      value: "12.5T",
-      change: "+15% vs last year",
+      title: "Total Expected Yield",
+      value: crops.length > 0 
+        ? crops.reduce((acc, c) => acc + c.expectedYield, 0).toFixed(1) + " Tons"
+        : "0 Tons",
+      change: crops.length > 0 ? `Avg: ${(crops.reduce((acc, c) => acc + c.expectedYield, 0) / crops.length).toFixed(1)}T per crop` : "No estimates yet",
       color: "bg-green-100 text-green-600",
     },
     {
-      icon: DollarSign,
-      title: "Market Price",
-      value: "₹2,450",
-      change: "per quintal",
-      color: "bg-accent/10 text-accent",
+      icon: MessageSquare,
+      title: "Consultations",
+      value: consultations.length.toString(),
+      change: "Pending replies",
+      color: "bg-blue-100 text-blue-600",
     },
     {
       icon: Cloud,
-      title: "Weather",
-      value: "28°C",
-      change: "Partly Cloudy",
-      color: "bg-blue-100 text-blue-600",
+      title: "Live Temperature",
+      value: "31.5°C",
+      change: "Ideal for Rice & Wheat",
+      color: "bg-yellow-100 text-yellow-600",
     },
-  ];
-
-  const cropData = [
-    { name: "Rice", area: 12, yield: 45 },
-    { name: "Wheat", area: 8, yield: 38 },
-    { name: "Corn", area: 6, yield: 32 },
-    { name: "Cotton", area: 10, yield: 28 },
   ];
 
   const priceData = [
@@ -82,44 +178,76 @@ export function FarmerDashboard() {
       description: "Protection against crop loss due to natural calamities",
       status: "Enrolled",
     },
-    {
-      title: "Soil Health Card",
-      description: "Get your soil tested and improve productivity",
-      status: "Pending",
-    },
   ];
 
   const recentArticles = [
     { title: "Water Conservation Techniques", date: "2 days ago" },
     { title: "Organic Pest Control Methods", date: "5 days ago" },
-    { title: "Monsoon Preparation Guide", date: "1 week ago" },
-  ];
-
-  const consultations = [
-    {
-      expert: "Dr. Rajesh Kumar",
-      topic: "Soil Health Management",
-      date: "March 1, 2026",
-      status: "Scheduled",
-    },
-    {
-      expert: "Priya Sharma",
-      topic: "Drip Irrigation Setup",
-      date: "Feb 28, 2026",
-      status: "Completed",
-    },
   ];
 
   return (
     <div className="space-y-8">
       {/* Welcome Section */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome back, Farmer!
-        </h1>
-        <p className="text-gray-600">
-          Here's what's happening with your farm today
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {localStorage.getItem("userName") || "Farmer"}!
+          </h1>
+          <p className="text-gray-600">
+            Here's what's happening with your farm today
+          </p>
+        </div>
+        
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add New Crop
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add New Crop</DialogTitle>
+              <DialogDescription>
+                Enter the details of your new crop to track its yield.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <Label htmlFor="name">Crop Name</Label>
+                <Input
+                  id="name"
+                  placeholder="e.g. Wheat, Rice"
+                  value={newCrop.name}
+                  onChange={(e) => setNewCrop({ ...newCrop, name: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="area">Area (Acres)</Label>
+                <Input
+                  id="area"
+                  type="number"
+                  placeholder="10"
+                  value={newCrop.area}
+                  onChange={(e) => setNewCrop({ ...newCrop, area: e.target.value })}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="yield">Expected Yield (Tons)</Label>
+                <Input
+                  id="yield"
+                  type="number"
+                  placeholder="4.5"
+                  value={newCrop.expectedYield}
+                  onChange={(e) => setNewCrop({ ...newCrop, expectedYield: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={handleAddCrop}>Save Crop</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Stats Grid */}
@@ -150,16 +278,22 @@ export function FarmerDashboard() {
             <CardDescription>Area and yield by crop type</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={cropData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="area" fill="#2E7D32" name="Area (acres)" />
-                <Bar dataKey="yield" fill="#A5D6A7" name="Yield (quintals)" />
-              </BarChart>
-            </ResponsiveContainer>
+            {crops.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={crops}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="area" fill="#2E7D32" name="Area (acres)" />
+                  <Bar dataKey="expectedYield" fill="#A5D6A7" name="Yield (tons)" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-[300px] flex items-center justify-center text-gray-500">
+                No crops added yet.
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -214,9 +348,7 @@ export function FarmerDashboard() {
                     className={
                       scheme.status === "Active"
                         ? "bg-green-100 text-green-800"
-                        : scheme.status === "Enrolled"
-                        ? "bg-blue-100 text-blue-800"
-                        : "bg-gray-100 text-gray-800"
+                        : "bg-blue-100 text-blue-800"
                     }
                   >
                     {scheme.status}
@@ -255,52 +387,6 @@ export function FarmerDashboard() {
           </CardContent>
         </Card>
       </div>
-
-      {/* Expert Consultations */}
-      <Card className="rounded-xl">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Expert Consultations</CardTitle>
-              <CardDescription>Your scheduled and past consultations</CardDescription>
-            </div>
-            <Button>
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Book Consultation
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {consultations.map((consultation, index) => (
-              <div key={index} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
-                    <MessageSquare className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-900">{consultation.expert}</h4>
-                    <p className="text-sm text-gray-600">{consultation.topic}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Calendar className="h-4 w-4 text-gray-400" />
-                      <span className="text-sm text-gray-500">{consultation.date}</span>
-                    </div>
-                  </div>
-                </div>
-                <Badge
-                  className={
-                    consultation.status === "Scheduled"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-green-100 text-green-800"
-                  }
-                >
-                  {consultation.status}
-                </Badge>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
